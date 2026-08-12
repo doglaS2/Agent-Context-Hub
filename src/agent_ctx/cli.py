@@ -1,0 +1,104 @@
+"""CLI do AgentContext Hub (Typer).
+
+Comandos da Fase 1: ``version``, ``init``, ``add`` e ``list``.
+``resume``/``inject``/``ui`` entram nas fases 2-4.
+"""
+
+from __future__ import annotations
+
+import json
+from importlib import metadata
+from pathlib import Path
+from typing import Annotated
+
+import typer
+from pydantic import ValidationError
+
+from agent_ctx.core.database import Database, default_db_path
+from agent_ctx.core.schema import HandoverPayload
+
+app = typer.Typer(
+    name="agent-ctx",
+    help=(
+        "AgentContext Hub - State Handover local-first "
+        "entre agentes de IA."
+    ),
+    no_args_is_help=True,
+)
+
+_DbOption = Annotated[
+    Path | None,
+    typer.Option("--db", help="Caminho do banco SQLite local."),
+]
+
+
+def _resolve_db(db: Path | None) -> Path:
+    return db if db is not None else default_db_path()
+
+
+@app.command("version")
+def show_version() -> None:
+    """Mostra a versão instalada do AgentContext Hub."""
+    try:
+        current = metadata.version("agent-ctx")
+    except metadata.PackageNotFoundError:
+        current = "0.1.0"
+    typer.echo(f"agent-ctx {current}")
+
+
+@app.command()
+def init(db: _DbOption = None) -> None:
+    """Inicializa o banco SQLite local (~/.agent-ctx/history.db)."""
+    db_path = _resolve_db(db)
+    with Database(db_path) as database:
+        database.migrate()
+    typer.echo(f"banco inicializado em {db_path}")
+
+
+@app.command("add")
+def handover_add(
+    file: Annotated[Path, typer.Option("--file", "-f",
+                                       help="Arquivo JSON do payload.")],
+    db: _DbOption = None,
+) -> None:
+    """Valida um HandoverPayload (Schema Universal) de um JSON e o salva."""
+    db_path = _resolve_db(db)
+    payload = _load_payload(file)
+    with Database(db_path) as database:
+        database.migrate()
+        database.save_handover(payload)
+    typer.echo(f"handover {payload.id} salvo em {db_path}")
+
+
+@app.command("list")
+def list_handovers(
+    limit: Annotated[int,
+                     typer.Option("--limit", "-n",
+                                  help="Número de itens.")] = 20,
+    db: _DbOption = None,
+) -> None:
+    """Lista os handovers recentes do banco local."""
+    db_path = _resolve_db(db)
+    with Database(db_path) as database:
+        database.migrate()
+        handovers = database.list_handovers(limit=limit)
+    for handover in handovers:
+        line = (
+            f"{handover.timestamp.isoformat()}  "
+            f"{handover.source_agent} -> {handover.target_agent}  "
+            f"{handover.id}"
+        )
+        typer.echo(line)
+
+
+def _load_payload(path: Path) -> HandoverPayload:
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError as exc:
+        raise typer.BadParameter(f"arquivo não encontrado: {path}") from exc
+    except json.JSONDecodeError as exc:
+        raise typer.BadParameter(f"JSON inválido em {path}: {exc}") from exc
+    try:
+        return HandoverPayload.model_validate(raw)
+    except ValidationError as exc:
+        raise typer.BadParameter(f"payload inválido: {exc.errors()}") from exc
