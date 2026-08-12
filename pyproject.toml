@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=75.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agent-ctx"
+version = "0.1.0"
+description = "Local-first State Handover engine for AI agents"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.12"
+authors = [
+    { name = "Douglas Siqueira", email = "doug.siq.silva@gmail.com" },
+]
+dependencies = [
+    "typer>=0.15,<1",
+    "pydantic>=2.10,<3",
+    "rich>=14,<16",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8,<9",
+    "ruff>=0.9,<1",
+]
+
+[project.scripts]
+agent-ctx = "agent_ctx.cli:app"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
