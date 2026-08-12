@@ -10,12 +10,65 @@ sem depender de cloud, mantendo todos os dados na sua máquina.
 - **Agnóstico de modelo:** fala com os *hosts* (arquivos de estado/logs), nunca com LLMs.
 - **Hub-and-Spoke:** um *Common Schema JSON* universal desacopla extractors de injectors.
 
+## Instalação
+
+```bash
+python -m pip install -e ".[dev]"
+```
+
+## Uso
+
+Inicialize o banco local:
+
+```bash
+agent-ctx init
+```
+
+Gere um handover a partir do estado de um agente:
+
+```bash
+agent-ctx extract \
+  --source claude-code \
+  --target cursor \
+  --project C:/meu/projeto \
+  --minutes 30
+```
+
+O comando `extract` lê o histórico local do agente de origem e salva um
+`HandoverPayload` no banco. Para conferir sem persistir:
+
+```bash
+agent-ctx extract --source claude-code --target cursor --project C:/meu/projeto --dry-run
+```
+
+### Extratores disponíveis
+
+| `--source` | Origem |
+|---|---|
+| `claude-code` | Transcripts JSONL de `~/.claude/projects/` (últimas 20 mensagens, ruído filtrado) |
+| `cursor` | Prompts e resumo do composer via `state.vscdb` (`aiService.prompts`, `composer.composerData`) |
+| `vscode` | Prompts de usuário das sessões de chat (`chatSessions/*.json`) |
+| `antigravity` | Fallback — sem histórico estruturado (intenção = handover do projeto) |
+| `generic` | Fallback do schema universal |
+
+O scanner de arquivos recentes (janela de `--minutes`, padrão 15) ignora diretórios
+como `.git`, `node_modules` e `.venv`, limita o volume de itens e descarta binários.
+
+### Outros comandos
+
+```bash
+agent-ctx version              # versão instalada
+agent-ctx add --file payload.json   # valida e salva um HandoverPayload de JSON
+agent-ctx list [-n 20]         # lista handovers recentes
+agent-ctx --help               # ajuda geral
+```
+
 ## Roadmap
 
 | Fase | Escopo | Estado |
 |---|---|---|
-| 1 | Core + banco SQLite + CLI + Schema Universal (Pydantic) | 🚧 em construção |
-| 2 | Extractors (Claude Code, Cursor/VS Code, Antigravity) + file scanner | pendente |
+| 1 | Core + banco SQLite + CLI + Schema Universal (Pydantic) | ✅ entregue |
+| 2 | Extractors (Claude Code, Cursor/VS Code, Antigravity) + file scanner + comando `extract` | ✅ entregue |
 | 3 | Injectors + orquestrador | pendente |
 | 4 | Dashboard local (`agent-ctx ui`, FastAPI + Tailwind) | pendente |
 
@@ -24,6 +77,7 @@ sem depender de cloud, mantendo todos os dados na sua máquina.
 ```bash
 python -m pip install -e ".[dev]"
 pytest -q
+ruff check .
 agent-ctx --help
 ```
 
