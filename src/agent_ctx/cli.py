@@ -1,7 +1,8 @@
 """CLI do AgentContext Hub (Typer).
 
 Comandos da Fase 1: ``version``, ``init``, ``add`` e ``list``.
-``resume``/``inject``/``ui`` entram nas fases 2-4.
+Fase 2: ``extract``. Fase 3: ``inject`` e ``resume``.
+Fase 4: ``ui``.
 """
 
 from __future__ import annotations
@@ -168,6 +169,105 @@ def extract_context(
         typer.echo(f"[dry-run] recent_files: {len(payload.recent_files)}")
         logs = len(payload.last_conversation_logs)
         typer.echo(f"[dry-run] conversation_logs: {logs}")
+        return
+
+    db_path = _resolve_db(db)
+    with Database(db_path) as database:
+        database.migrate()
+        database.save_handover(payload)
+    typer.echo(f"handover {payload.id} salvo em {db_path}")
+
+
+# ──────────────────────── Fase 3: inject ──────────────────────────
+
+@app.command("inject")
+def inject_context(
+    id: Annotated[str, typer.Option("--id", help="ID do handover no banco.")],
+    project: Annotated[Path, typer.Option("--project",
+                                          help="Caminho do projeto destino.")],
+    db: _DbOption = None,
+) -> None:
+    """Carrega um HandoverPayload do banco e injeta no projeto destino."""
+    if not project.is_dir():
+        raise typer.BadParameter(f"caminho do projeto não é diretório: {project}")
+
+    db_path = _resolve_db(db)
+    with Database(db_path) as database:
+        database.migrate()
+        payload = database.get_handover(id)
+    if payload is None:
+        raise typer.BadParameter(f"handover não encontrado: {id}")
+
+    from agent_ctx.injectors import _resolve_injector
+
+    injector = _resolve_injector(payload.target_agent)
+    result = injector.inject(str(project), payload)
+    typer.echo(f"handover {id} injetado em {result.file_path}")
+
+
+# ──────────────────────── Fase 3: resume ──────────────────────────
+
+@app.command("resume")
+def resume_context(
+    source: Annotated[str, typer.Option("--source", help="Agente de origem.")],
+    target: Annotated[str, typer.Option("--target", help="Agente de destino.")],
+    project: Annotated[Path, typer.Option("--project", help="Caminho do projeto.")],
+    minutes: Annotated[
+        int, typer.Option("--minutes", help="Janela de mtime (minutos).")
+    ] = 15,
+    dry_run: Annotated[
+        bool, typer.Option("--dry-run", help="Mostra resultado sem persistir.")
+    ] = False,
+    db: _DbOption = None,
+) -> None:
+    """Extract + Inject + Salva: transfere contexto entre agentes."""
+    if source not in _VALID_AGENTS:
+        raise typer.BadParameter(
+            f"fonte inválida: {source}. Opções: {', '.join(_VALID_AGENTS)}"
+        )
+    if target not in _VALID_AGENTS:
+        raise typer.BadParameter(
+            f"destino inválido: {target}. Opções: {', '.join(_VALID_AGENTS)}"
+        )
+    if not project.is_dir():
+        raise typer.BadParameter(f"caminho do projeto não é diretório: {project}")
+    if minutes < 1:
+        raise typer.BadParameter("minutes deve ser >= 1")
+
+    from agent_ctx.extractors.antigravity import AntigravityExtractor
+    from agent_ctx.extractors.claude_code import ClaudeCodeExtractor
+    from agent_ctx.extractors.cursor import CursorExtractor
+    from agent_ctx.extractors.generic import GenericExtractor
+    from agent_ctx.extractors.vscode import VSCodeExtractor
+    from agent_ctx.injectors import _resolve_injector
+
+    _EXTRACTORS = {
+        "claude-code": ClaudeCodeExtractor,
+        "cursor": CursorExtractor,
+        "vscode": VSCodeExtractor,
+        "antigravity": AntigravityExtractor,
+        "generic": GenericExtractor,
+    }
+
+    extractor = _EXTRACTORS[source]()
+    context = extractor.extract(str(project))
+    recent = Scanner(minutes=minutes).recent_files(project)
+
+    payload = HandoverPayload(
+        source_agent=source,
+        target_agent=target,
+        project_path=str(project.resolve()),
+        intent_summary=context.intent_summary,
+        recent_files=recent,
+        last_conversation_logs=context.conversation_logs,
+    )
+
+    injector = _resolve_injector(target)
+    result = injector.inject(str(project), payload)
+
+    if dry_run:
+        typer.echo(f"[dry-run] intent: {payload.intent_summary}")
+        typer.echo(f"[dry-run] injectado em: {result.file_path}")
         return
 
     db_path = _resolve_db(db)

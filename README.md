@@ -54,6 +54,32 @@ agent-ctx extract --source claude-code --target cursor --project C:/meu/projeto 
 O scanner de arquivos recentes (janela de `--minutes`, padrão 15) ignora diretórios
 como `.git`, `node_modules` e `.venv`, limita o volume de itens e descarta binários.
 
+### Injetar um handover no destino
+
+O comando `inject` carrega um handover já salvo no banco e escreve o estado
+no ambiente do agente de destino:
+
+```bash
+agent-ctx inject --id <ID> --project C:/meu/projeto
+```
+
+O `resume` faz a operação completa numa só chamada — *extract → inject → salvar* —
+transferindo contexto entre dois agentes:
+
+```bash
+agent-ctx resume --source claude-code --target cursor --project C:/meu/projeto
+agent-ctx resume --source claude-code --target cursor --project C:/meu/projeto --dry-run
+```
+
+Com `--dry-run`, o contexto é extraído e injetado, mas **não** é persistido no banco.
+
+### Injetores disponíveis
+
+| `--target` | Destino |
+|---|---|
+| `claude-code` | Resumo markdown em `.claude/agent-context.md` (nunca sobrescreve `CLAUDE.md`) |
+| demais agentes | `.agent-ctx/handover.json` no projeto (leitura universal) |
+
 ### Outros comandos
 
 ```bash
@@ -69,7 +95,7 @@ agent-ctx --help               # ajuda geral
 |---|---|---|
 | 1 | Core + banco SQLite + CLI + Schema Universal (Pydantic) | ✅ entregue |
 | 2 | Extractors (Claude Code, Cursor/VS Code, Antigravity) + file scanner + comando `extract` | ✅ entregue |
-| 3 | Injectors + orquestrador | pendente |
+| 3 | Injectors (`.agent-ctx/handover.json`, `.claude/agent-context.md`) + `inject`/`resume` | ✅ entregue |
 | 4 | Dashboard local (`agent-ctx ui`, FastAPI + Tailwind) | pendente |
 
 ## Desenvolvimento
