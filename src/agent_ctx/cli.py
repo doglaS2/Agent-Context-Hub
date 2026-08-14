@@ -129,6 +129,17 @@ def extract_context(
         bool,
         typer.Option("--summarize", help="Enriquece com resumo semântico via LLM."),
     ] = False,
+    provider: Annotated[
+        str | None,
+        typer.Option(
+            "--provider",
+            help="Provedor de LLM para o resumo (anthropic, openai, gemini, ollama, local).",
+        ),
+    ] = None,
+    model: Annotated[
+        str | None,
+        typer.Option("--model", help="Modelo específico do provedor."),
+    ] = None,
     db: _DbOption = None,
 ) -> None:
     """Lê o estado local de um agente e gera um handover."""
@@ -172,7 +183,9 @@ def extract_context(
         last_conversation_logs=context.conversation_logs,
     )
 
-    semantic_summary = _maybe_summarize(summarize, recent, context.intent_summary)
+    semantic_summary = _maybe_summarize(
+        summarize, recent, context.intent_summary, provider=provider, model=model
+    )
     if semantic_summary is not None:
         payload = payload.model_copy(update={"semantic_summary": semantic_summary})
 
@@ -247,6 +260,8 @@ def _maybe_summarize(
     enabled: bool,
     recent_files: list,
     intent_hint: str,
+    provider: str | None = None,
+    model: str | None = None,
 ) -> SemanticSummary | None:
     if not enabled:
         return None
@@ -254,7 +269,9 @@ def _maybe_summarize(
     if not combined_diff.strip():
         return None
     try:
-        return get_diff_summarizer().summarize(combined_diff, intent_hint=intent_hint)
+        return get_diff_summarizer(provider=provider, model=model).summarize(
+            combined_diff, intent_hint=intent_hint
+        )
     except Exception as exc:
         logger.warning("Falha ao gerar resumo semântico: %s", exc)
         return None
@@ -303,6 +320,17 @@ def resume_context(
         bool,
         typer.Option("--summarize", help="Enriquece com resumo semântico via LLM."),
     ] = False,
+    provider: Annotated[
+        str | None,
+        typer.Option(
+            "--provider",
+            help="Provedor de LLM para o resumo (anthropic, openai, gemini, ollama, local).",
+        ),
+    ] = None,
+    model: Annotated[
+        str | None,
+        typer.Option("--model", help="Modelo específico do provedor."),
+    ] = None,
     db: _DbOption = None,
 ) -> None:
     """Extract + Inject + Salva: transfere contexto entre agentes."""
@@ -347,7 +375,9 @@ def resume_context(
         last_conversation_logs=context.conversation_logs,
     )
 
-    semantic_summary = _maybe_summarize(summarize, recent, context.intent_summary)
+    semantic_summary = _maybe_summarize(
+        summarize, recent, context.intent_summary, provider=provider, model=model
+    )
     if semantic_summary is not None:
         payload = payload.model_copy(update={"semantic_summary": semantic_summary})
 

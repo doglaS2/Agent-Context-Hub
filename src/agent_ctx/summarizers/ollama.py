@@ -28,11 +28,10 @@ class OllamaDiffSummarizer(BaseDiffSummarizer):
         model: str = "llama3.2",
         timeout: float = 60.0,
     ) -> None:
-        self._host = (
-            host
-            or os.environ.get("OLLAMA_HOST")
-            or "http://127.0.0.1:11434"
+        raw_host = (
+            host or os.environ.get("OLLAMA_HOST") or "http://127.0.0.1:11434"
         ).rstrip("/")
+        self._host = raw_host if "://" in raw_host else f"http://{raw_host}"
         self._model = model
         self._timeout = timeout
 
