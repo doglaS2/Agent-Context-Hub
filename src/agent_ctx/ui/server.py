@@ -1,14 +1,14 @@
 from __future__ import annotations
 
+import os
 from datetime import UTC, datetime
+from pathlib import Path
+
 import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-
-import os
-from pathlib import Path
 
 from agent_ctx.core.database import Database, default_db_path
 
@@ -46,7 +46,10 @@ async def startup_event() -> None:
 
 @app.get("/api/handovers")
 async def get_handovers() -> list[dict[str, object]]:
-    return [handover.model_dump(mode="json") for handover in db.list_handovers(limit=50)]
+    return [
+        handover.model_dump(mode="json")
+        for handover in db.list_handovers(limit=50)
+    ]
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -66,8 +69,12 @@ async def index(request: Request) -> HTMLResponse:
 async def handover_detail(request: Request, handover_id: str) -> HTMLResponse:
     handover = db.get_handover(handover_id)
     if handover is None:
-        return templates.TemplateResponse("404.html", {"request": request}, status_code=404)
-    return templates.TemplateResponse("detail.html", {"request": request, "handover": handover})
+        return templates.TemplateResponse(
+            "404.html", {"request": request}, status_code=404
+        )
+    return templates.TemplateResponse(
+        "detail.html", {"request": request, "handover": handover}
+    )
 
 
 if __name__ == "__main__":

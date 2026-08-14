@@ -20,7 +20,7 @@ from agent_ctx.core.database import Database, default_db_path
 from agent_ctx.core.scanner import Scanner
 from agent_ctx.core.schema import HandoverPayload
 from agent_ctx.core.semantic_summary import SemanticSummary
-from agent_ctx.summarizers.claude import ClaudeDiffSummarizer
+from agent_ctx.summarizers.factory import get_diff_summarizer
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +66,9 @@ def init(db: _DbOption = None) -> None:
 
 @app.command("add")
 def handover_add(
-    file: Annotated[Path, typer.Option("--file", "-f", help="Arquivo JSON do payload.")],
+    file: Annotated[
+        Path, typer.Option("--file", "-f", help="Arquivo JSON do payload.")
+    ],
     db: _DbOption = None,
 ) -> None:
     """Valida um HandoverPayload (Schema Universal) de um JSON e o salva."""
@@ -115,9 +117,13 @@ def extract_context(
     source: Annotated[str, typer.Option("--source", help="Agente de origem.")],
     target: Annotated[str, typer.Option("--target", help="Agente de destino.")],
     project: Annotated[Path, typer.Option("--project", help="Caminho do projeto.")],
-    minutes: Annotated[int, typer.Option("--minutes", help="Janela de mtime (minutos).")]
+    minutes: Annotated[
+        int, typer.Option("--minutes", help="Janela de mtime (minutos).")
+    ]
     = 15,
-    dry_run: Annotated[bool, typer.Option("--dry-run", help="Mostra resultado sem persistir.")]
+    dry_run: Annotated[
+        bool, typer.Option("--dry-run", help="Mostra resultado sem persistir.")
+    ]
     = False,
     summarize: Annotated[
         bool,
@@ -173,9 +179,13 @@ def extract_context(
     if dry_run:
         typer.echo(f"[dry-run] intent: {payload.intent_summary}")
         typer.echo(f"[dry-run] recent_files: {len(payload.recent_files)}")
-        typer.echo(f"[dry-run] conversation_logs: {len(payload.last_conversation_logs)}")
+        typer.echo(
+            f"[dry-run] conversation_logs: {len(payload.last_conversation_logs)}"
+        )
         if payload.semantic_summary is not None:
-            typer.echo(f"[dry-run] semantic_summary: {payload.semantic_summary.summary}")
+            typer.echo(
+                f"[dry-run] semantic_summary: {payload.semantic_summary.summary}"
+            )
         return
 
     db_path = _resolve_db(db)
@@ -192,14 +202,28 @@ def summarize_diff(
         Path | None,
         typer.Option("--file", "-f", help="Arquivo contendo o diff bruto."),
     ] = None,
-    intent: Annotated[str, typer.Option("--intent", help="Intenção/contexto da mudança.")]
+    intent: Annotated[
+        str, typer.Option("--intent", help="Intenção/contexto da mudança.")
+    ]
     = "",
-    json_output: Annotated[bool, typer.Option("--json", help="Retorna o payload como JSON.")]
+    provider: Annotated[
+        str | None,
+        typer.Option(
+            "--provider",
+            help="Provedor (anthropic, openai, gemini, ollama, local).",
+        ),
+    ] = None,
+    model: Annotated[
+        str | None, typer.Option("--model", help="Modelo específico do provedor.")
+    ] = None,
+    json_output: Annotated[
+        bool, typer.Option("--json", help="Retorna o payload como JSON.")
+    ]
     = False,
 ) -> None:
-    """Sumariza semanticamente um diff bruto usando Claude Sonnet."""
+    """Sumariza diff usando Anthropic, OpenAI, Gemini, Ollama ou Local."""
     raw = _load_diff_input(diff, file)
-    summarizer = ClaudeDiffSummarizer()
+    summarizer = get_diff_summarizer(provider=provider, model=model)
     result = summarizer.summarize(raw, intent_hint=intent)
     if json_output:
         typer.echo(result.model_dump_json(indent=2))
@@ -230,8 +254,8 @@ def _maybe_summarize(
     if not combined_diff.strip():
         return None
     try:
-        return ClaudeDiffSummarizer().summarize(combined_diff, intent_hint=intent_hint)
-    except Exception as exc:  # noqa: BLE001
+        return get_diff_summarizer().summarize(combined_diff, intent_hint=intent_hint)
+    except Exception as exc:
         logger.warning("Falha ao gerar resumo semântico: %s", exc)
         return None
 
@@ -239,7 +263,9 @@ def _maybe_summarize(
 @app.command("inject")
 def inject_context(
     id: Annotated[str, typer.Option("--id", help="ID do handover no banco.")],
-    project: Annotated[Path, typer.Option("--project", help="Caminho do projeto destino.")],
+    project: Annotated[
+        Path, typer.Option("--project", help="Caminho do projeto destino.")
+    ],
     db: _DbOption = None,
 ) -> None:
     """Carrega um HandoverPayload do banco e injeta no projeto destino."""
@@ -265,9 +291,13 @@ def resume_context(
     source: Annotated[str, typer.Option("--source", help="Agente de origem.")],
     target: Annotated[str, typer.Option("--target", help="Agente de destino.")],
     project: Annotated[Path, typer.Option("--project", help="Caminho do projeto.")],
-    minutes: Annotated[int, typer.Option("--minutes", help="Janela de mtime (minutos).")]
+    minutes: Annotated[
+        int, typer.Option("--minutes", help="Janela de mtime (minutos).")
+    ]
     = 15,
-    dry_run: Annotated[bool, typer.Option("--dry-run", help="Mostra resultado sem persistir.")]
+    dry_run: Annotated[
+        bool, typer.Option("--dry-run", help="Mostra resultado sem persistir.")
+    ]
     = False,
     summarize: Annotated[
         bool,
@@ -328,7 +358,9 @@ def resume_context(
         typer.echo(f"[dry-run] intent: {payload.intent_summary}")
         typer.echo(f"[dry-run] injectado em: {result.file_path}")
         if payload.semantic_summary is not None:
-            typer.echo(f"[dry-run] semantic_summary: {payload.semantic_summary.summary}")
+            typer.echo(
+                f"[dry-run] semantic_summary: {payload.semantic_summary.summary}"
+            )
         return
 
     db_path = _resolve_db(db)
@@ -340,15 +372,23 @@ def resume_context(
 
 @app.command("ui")
 def run_ui(
-    host: Annotated[str, typer.Option("--host", help="Host para o servidor UI.")] = "127.0.0.1",
-    port: Annotated[int, typer.Option("--port", help="Porta para o servidor UI.")] = 8765,
+    host: Annotated[
+        str, typer.Option("--host", help="Host para o servidor UI.")
+    ] = "127.0.0.1",
+    port: Annotated[
+        int, typer.Option("--port", help="Porta para o servidor UI.")
+    ] = 8765,
     db: _DbOption = None,
 ) -> None:
     """Inicia o dashboard web local (FastAPI)."""
     import os
+
     import uvicorn
 
     db_path = _resolve_db(db)
     os.environ["AGENT_CTX_DB"] = str(db_path)
-    typer.echo(f"Iniciando AgentContext Hub Dashboard em http://{host}:{port} (usando banco {db_path})...")
+    typer.echo(
+        f"Iniciando AgentContext Hub Dashboard em http://{host}:{port} "
+        f"(usando banco {db_path})..."
+    )
     uvicorn.run("agent_ctx.ui.server:app", host=host, port=port, reload=False)
