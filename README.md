@@ -89,22 +89,47 @@ agent-ctx list [-n 20]         # lista handovers recentes
 agent-ctx --help               # ajuda geral
 ```
 
-## Roadmap
+## Tutorial
 
-| Fase | Escopo | Estado |
-|---|---|---|
-| 1 | Core + banco SQLite + CLI + Schema Universal (Pydantic) | ✅ entregue |
-| 2 | Extractors (Claude Code, Cursor/VS Code, Antigravity) + file scanner + comando `extract` | ✅ entregue |
-| 3 | Injectors (`.agent-ctx/handover.json`, `.claude/agent-context.md`) + `inject`/`resume` | ✅ entregue |
-| 4 | Dashboard local (`agent-ctx ui`, FastAPI + Tailwind) | pendente |
+```bash
+python -m pip install -e ".[dev]"
+agent-ctx --help
+agent-ctx extract --source claude-code --target cursor --project .
+agent-ctx inject --target claude-code --handover-id <ID>
+agent-ctx ui --open
+```
+
+## Instalação
+
+```bash
+python -m pip install -e ".[dev]"
+```
+
+Se você for usar o dashboard local, instale também os extras da interface:
+
+```bash
+python -m pip install -e ".[ui]"
+```
+
+## Uso
+
+O fluxo básico é:
+1. Extrair contexto do agente de origem.
+2. Injetar o handover no agente de destino.
+3. Abrir o dashboard local para revisar a timeline.
+
+O dashboard roda 100% local com FastAPI e Tailwind CSS compilado no projeto.
+
+Para regerar o CSS após alterar os templates:
+
+```bash
+npx tailwindcss -i src/agent_ctx/ui/static/input.css -o src/agent_ctx/ui/static/tailwind.css --minify --content "src/agent_ctx/ui/templates/**/*.html"
+```
 
 ## Desenvolvimento
 
 ```bash
-python -m pip install -e ".[dev]"
 pytest -q
 ruff check .
 agent-ctx --help
 ```
-
-Arquitetura e roadmap detalhados na especificação técnica (PRD v3.0), documento de autoria confidencial que orienta este repositório.
