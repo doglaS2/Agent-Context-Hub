@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block content %}
+<a href="/" class="back-link">← Timeline</a>
+
+<div class="detail-card">
+    <div class="detail-header">
+        <div class="detail-header-left">
+            <time class="detail-time">{{ handover.timestamp.strftime('%d %B %Y · %H:%M:%S') }}</time>
+            <span class="detail-relative" data-ts="{{ handover.timestamp.isoformat() }}"></span>
+            <div class="detail-counters">
+                {% if handover.recent_files %}<span>{{ handover.recent_files | length }} arquivo{{ 's' if handover.recent_files | length != 1 }}</span>{% endif %}
+                {% if handover.last_conversation_logs %}<span>{{ handover.last_conversation_logs | length }} log{{ 's' if handover.last_conversation_logs | length != 1 }}</span>{% endif %}
+            </div>
+        </div>
+        <span class="tag-pill">{{ handover.id }}</span>
+    </div>
+
+    <div class="detail-section">
+        <div class="detail-flow">
+            <div class="agent-badge" style="background: var(--accent-glow); color: var(--accent);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </div>
+            <div>
+                <div class="detail-label">Fluxo</div>
+                <div class="detail-agents">{{ handover.source_agent }} → {{ handover.target_agent }}</div>
+            </div>
+        </div>
+        <div class="detail-row">
+            <div class="detail-label">Projeto</div>
+            <div class="detail-value">{{ handover.project_path }}</div>
+        </div>
+    </div>
+
+    <div class="detail-section">
+        <h3 class="detail-subtitle">Intent Summary</h3>
+        <p class="detail-summary">{{ handover.intent_summary }}</p>
+    </div>
+
+    {% if handover.recent_files %}
+    <details class="detail-section detail-collapsible" open>
+        <summary class="detail-subtitle clickable">Arquivos Recentes ({{ handover.recent_files | length }})</summary>
+        <div class="file-list">
+            {% for file in handover.recent_files %}
+            <div class="file-item">
+                <div class="file-path">{{ file.path }}</div>
+                {% if file.mtime %}
+                <div class="file-mtime">{{ file.mtime.strftime('%d/%m %H:%M') }}</div>
+                {% endif %}
+                {% if file.diff %}
+                <pre class="file-diff">{{ file.diff }}</pre>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </details>
+    {% endif %}
+
+    {% if handover.last_conversation_logs %}
+    <details class="detail-section detail-collapsible" open>
+        <summary class="detail-subtitle clickable">Conversation Logs ({{ handover.last_conversation_logs | length }})</summary>
+        <div class="log-list">
+            {% for log in handover.last_conversation_logs %}
+            <div class="log-item log-{{ log.role }}">
+                <div class="log-role">{{ log.role }}</div>
+                <pre class="log-content">{{ log.content }}</pre>
+            </div>
+            {% endfor %}
+        </div>
+    </details>
+    {% endif %}
+
+    <details class="detail-section detail-collapsible">
+        <summary class="detail-subtitle clickable">
+            Payload Completo (JSON)
+            <button type="button" class="copy-btn" onclick="event.stopPropagation(); copyJson()">Copiar</button>
+        </summary>
+        <pre class="json-block" id="json-payload">{{ handover.model_dump_json(indent=2) }}</pre>
+    </details>
+</div>
+
+<script>
+function copyJson() {
+    const el = document.getElementById('json-payload');
+    navigator.clipboard.writeText(el.textContent).then(() => {
+        const btn = document.querySelector('.copy-btn');
+        btn.textContent = 'Copiado!';
+        setTimeout(() => { btn.textContent = 'Copiar'; }, 2000);
+    });
+}
+function relativeTime() {
+    document.querySelectorAll('.detail-relative').forEach(el => {
+        const ts = new Date(el.dataset.ts);
+        const diff = Date.now() - ts.getTime();
+        const s = Math.floor(diff / 1000);
+        const m = Math.floor(s / 60);
+        const h = Math.floor(m / 60);
+        const d = Math.floor(h / 24);
+        let txt;
+        if (d > 0) txt = d + 'd atrás';
+        else if (h > 0) txt = h + 'h atrás';
+        else if (m > 0) txt = m + 'min atrás';
+        else txt = 'agora';
+        el.textContent = txt;
+    });
+}
+relativeTime();
+</script>
+{% endblock %}

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}AgentContext Hub{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='tailwind.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script type="module">
+        const root = document.documentElement;
+        function applyTheme() {
+            if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                root.classList.add('dark');
+            } else {
+                root.classList.remove('dark');
+            }
+        }
+        function toggleTheme() {
+            root.classList.toggle('dark');
+            localStorage.theme = root.classList.contains('dark') ? 'dark' : 'light';
+        }
+        window.toggleTheme = toggleTheme;
+        applyTheme();
+    </script>
+</head>
+<body>
+    <nav>
+        <div class="top-bar page-shell">
+            <a href="/" class="logo-link">
+                <div class="logo-icon">
+                    <svg class="logo-svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                </div>
+                <span class="logo-text">AgentContext Hub</span>
+            </a>
+            <div style="display:flex;align-items:center;gap:12px;">
+                <span class="tag-pill">
+                    <span style="width:6px;height:6px;border-radius:50%;background:#34d399;"></span>
+                    Local
+                </span>
+                <button type="button" onclick="window.toggleTheme()" class="theme-toggle" aria-label="Alternar tema"></button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="page-shell">
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>

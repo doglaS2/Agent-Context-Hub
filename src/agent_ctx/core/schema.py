@@ -12,6 +12,8 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
+from agent_ctx.core.semantic_summary import SemanticSummary
+
 # Identificadores canônicos das fontes/destinos suportadas (PRD v3.0).
 AgentId = Literal["claude-code", "cursor", "vscode", "antigravity", "generic"]
 
@@ -53,3 +55,7 @@ class HandoverPayload(BaseModel):
     intent_summary: str = Field(min_length=1, max_length=20_000)
     recent_files: list[RecentFile] = Field(default_factory=list)
     last_conversation_logs: list[ConversationLog] = Field(default_factory=list)
+    semantic_summary: SemanticSummary | None = Field(
+        default=None,
+        description="Resumo semântico opcional do diff (Fase 3.5+).",
+    )

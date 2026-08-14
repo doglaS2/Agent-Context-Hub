@@ -1,1 +1,1 @@
-"""Dashboard local-first do AgentContext Hub (Fase 4)."""
+"""Dashboard UI for AgentContext Hub."""

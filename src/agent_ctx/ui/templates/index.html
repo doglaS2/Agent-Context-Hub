@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block content %}
+<header class="timeline-header">
+    <div>
+        <p class="timeline-kicker">Local dashboard</p>
+        <h1 class="timeline-title">Timeline</h1>
+        <p class="timeline-subtitle">{{ total_handovers }} handovers registrados</p>
+    </div>
+</header>
+
+{% if handovers %}
+<section class="timeline-list">
+    {% for h in handovers %}
+    <article class="timeline-item glass-card">
+        <div class="timeline-meta">
+            <time class="timeline-time">{{ h.timestamp.strftime('%d %b %Y · %H:%M') }}</time>
+            <span class="tag-pill">{{ h.id|string }}</span>
+        </div>
+
+        <div class="timeline-flow">
+            <div class="agent-badge" style="background: var(--accent-glow); color: var(--accent);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </div>
+            <div class="timeline-flow-text">
+                <div class="timeline-agents">{{ h.source_agent }} → {{ h.target_agent }}</div>
+                <div class="timeline-path">{{ h.project_path }}</div>
+            </div>
+        </div>
+
+        <p class="timeline-summary">{{ h.intent_summary }}</p>
+
+        <div class="timeline-footer">
+            <span class="timeline-files">{{ h.recent_files | length }} arquivos recentes</span>
+            <a href="{{ url_for('handover_detail', handover_id=h.id) }}" class="timeline-link">Ver detalhe</a>
+        </div>
+    </article>
+    {% endfor %}
+</section>
+{% else %}
+<div class="empty-state glass-card">Sem handovers ainda.</div>
+{% endif %}
+{% endblock %}
