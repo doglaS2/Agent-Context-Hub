@@ -289,8 +289,9 @@ def start_ui(
 ) -> None:
     """Inicia dashboard web local (requer extra [ui])."""
     try:
-        from agent_ctx.ui.server import create_app
         import uvicorn
+
+        from agent_ctx.ui.server import create_app
     except ImportError:
         typer.secho(
             "Erro: Dependências do dashboard não instaladas. "
@@ -320,8 +321,8 @@ def start_ui(
             raise typer.Exit(1)
 
     if open_browser:
-        import webbrowser
         import threading
+        import webbrowser
         url = f"http://{host}:{port}"
         def open_delayed():
             import time

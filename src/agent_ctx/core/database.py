@@ -12,9 +12,9 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Self
-from urllib.parse import quote
 
 from agent_ctx.core.schema import HandoverPayload
+
 
 @dataclass(frozen=True)
 class HandoverSummary:
