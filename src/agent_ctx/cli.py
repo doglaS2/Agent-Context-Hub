@@ -2,7 +2,7 @@
 
 Comandos da Fase 1: ``version``, ``init``, ``add`` e ``list``.
 Fase 2: ``extract``. Fase 3: ``inject`` e ``resume``.
-Fase 4: ``ui``.
+Fase 4: ``ui`` e ``summarize``.
 """
 
 from __future__ import annotations
@@ -336,3 +336,19 @@ def resume_context(
         database.migrate()
         database.save_handover(payload)
     typer.echo(f"handover {payload.id} salvo em {db_path}")
+
+
+@app.command("ui")
+def run_ui(
+    host: Annotated[str, typer.Option("--host", help="Host para o servidor UI.")] = "127.0.0.1",
+    port: Annotated[int, typer.Option("--port", help="Porta para o servidor UI.")] = 8765,
+    db: _DbOption = None,
+) -> None:
+    """Inicia o dashboard web local (FastAPI)."""
+    import os
+    import uvicorn
+
+    db_path = _resolve_db(db)
+    os.environ["AGENT_CTX_DB"] = str(db_path)
+    typer.echo(f"Iniciando AgentContext Hub Dashboard em http://{host}:{port} (usando banco {db_path})...")
+    uvicorn.run("agent_ctx.ui.server:app", host=host, port=port, reload=False)

@@ -95,8 +95,8 @@ agent-ctx --help               # ajuda geral
 python -m pip install -e ".[dev]"
 agent-ctx --help
 agent-ctx extract --source claude-code --target cursor --project .
-agent-ctx inject --target claude-code --handover-id <ID>
-agent-ctx ui --open
+agent-ctx inject --id <ID> --project .
+agent-ctx ui
 ```
 
 ## Instalação
