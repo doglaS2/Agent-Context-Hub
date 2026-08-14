@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block title %}404 · AgentContext Hub{% endblock %}
+
+{% block content %}
+<div class="empty-state animate-scale-in">
+    <div class="empty-state-icon">
+        <svg class="w-8 h-8 text-[var(--accent)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 8v4M12 16h.01"/>
+        </svg>
+    </div>
+    <h3 class="text-lg font-semibold mb-2">Handover não encontrado</h3>
+    <p class="text-sm text-[var(--text-secondary)] mb-6">Este handover não existe ou foi removido.</p>
+    <a href="/" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium text-white transition-all hover:opacity-90" style="background: linear-gradient(135deg, var(--gradient-from), var(--gradient-to));">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        Voltar à Timeline
+    </a>
+</div>
+{% endblock %}

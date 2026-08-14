@@ -19,9 +19,16 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# Dashboard local (`agent-ctx ui`). Extra opcional: a CLI base segue leve.
+ui = [
+    "fastapi>=0.112,<1",
+    "uvicorn>=0.30,<1",
+    "jinja2>=3.1,<4",
+]
 dev = [
     "pytest>=8,<9",
     "ruff>=0.9,<1",
+    "httpx>=0.27,<1",
 ]
 
 [project.scripts]
@@ -29,6 +36,11 @@ agent-ctx = "agent_ctx.cli:app"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+# Assets do dashboard viajam dentro do wheel; sem isto o `ui` quebra após
+# `pip install` (os diretórios simplesmente não existiriam no pacote).
+[tool.setuptools.package-data]
+"agent_ctx.ui" = ["static/*.css", "templates/*.html"]
 
 [tool.ruff]
 line-length = 88

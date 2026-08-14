@@ -8,11 +8,24 @@ Universal (Schema Universal) mais colunas indexadas para consulta rápida.
 from __future__ import annotations
 
 import sqlite3
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Self
 
 from agent_ctx.core.schema import HandoverPayload
+
+
+@dataclass(frozen=True)
+class HandoverSummary:
+    """Resumo leve para timeline da UI, sem o payload completo."""
+
+    id: str
+    timestamp: datetime
+    source_agent: str
+    target_agent: str
+    project_path: str
+    intent_summary: str
 
 # Versão do schema SQLite. Incremente e adicione o passo em ``_MIGRATIONS``.
 SCHEMA_VERSION = 1
@@ -58,8 +71,9 @@ def _iso(dt: datetime) -> str:
 class Database:
     """Conexão SQLite local com migração de schema e operações de handover."""
 
-    def __init__(self, path: str | Path | None = None) -> None:
+    def __init__(self, path: str | Path | None = None, read_only: bool = False) -> None:
         self.path = Path(path) if path is not None else default_db_path()
+        self.read_only = read_only
         self._conn: sqlite3.Connection | None = None
 
     @property
@@ -70,10 +84,14 @@ class Database:
 
     def _connect(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        conn = sqlite3.connect(self.path)
+        if self.read_only:
+            uri = f"file:{self.path.as_posix()}?mode=ro"
+            conn = sqlite3.connect(uri, uri=True)
+        else:
+            conn = sqlite3.connect(self.path)
+            conn.execute("PRAGMA journal_mode = WAL;")
+            conn.execute("PRAGMA foreign_keys = ON;")
         conn.row_factory = sqlite3.Row
-        conn.execute("PRAGMA journal_mode = WAL;")
-        conn.execute("PRAGMA foreign_keys = ON;")
         self._conn = conn
 
     def migrate(self) -> int:
@@ -133,6 +151,28 @@ class Database:
             (limit,),
         ).fetchall()
         return [HandoverPayload.model_validate_json(r["payload_json"]) for r in rows]
+
+    def list_summaries(self, *, limit: int = 50) -> list[HandoverSummary]:
+        """Lista resumo de handovers (sem payload completo)."""
+        if limit <= 0:
+            raise DatabaseError("limit deve ser positivo")
+        rows = self.conn.execute(
+            "SELECT id, timestamp, source_agent, target_agent, "
+            "project_path, intent_summary FROM handovers "
+            "ORDER BY timestamp DESC, rowid DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+        return [
+            HandoverSummary(
+                id=r["id"],
+                timestamp=datetime.fromisoformat(r["timestamp"]),
+                source_agent=r["source_agent"],
+                target_agent=r["target_agent"],
+                project_path=r["project_path"],
+                intent_summary=r["intent_summary"],
+            )
+            for r in rows
+        ]
 
     def count(self) -> int:
         row = self.conn.execute("SELECT COUNT(*) AS n FROM handovers").fetchone()

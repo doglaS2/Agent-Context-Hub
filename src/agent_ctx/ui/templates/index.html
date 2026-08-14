@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+{# ───── Agent SVG icons ───── #}
+{% set icons = {
+  "claude-code": '<svg viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5z" fill="currentColor" opacity="0.2"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  "cursor": '<svg viewBox="0 0 24 24" fill="none"><path d="M5 3l14 9-6 1-3 7-5-17z" fill="currentColor" opacity="0.2" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>',
+  "vscode": '<svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" stroke-width="1.5"/><path d="M8 8l4 4-4 4M13 16h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  "antigravity": '<svg viewBox="0 0 24 24" fill="none"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7l3-7z" fill="currentColor" opacity="0.2" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>',
+  "generic": '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/><path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>'
+} %}
+
+{% set agent_colors = {
+  "claude-code": "#d97706",
+  "cursor": "#3b82f6",
+  "vscode": "#0ea5e9",
+  "antigravity": "#8b5cf6",
+  "generic": "#71717a"
+} %}
+
+{# ───── Page header ───── #}
+<header class="mb-10 animate-fade-up">
+    <div class="flex items-center gap-3 mb-2">
+        <h1 class="text-3xl font-bold tracking-tight">Timeline</h1>
+    </div>
+    <p class="text-[var(--text-secondary)] text-[15px]">
+        Histórico de handovers entre agentes
+    </p>
+</header>
+
+{% if handovers %}
+<div class="space-y-4">
+    {% for h in handovers %}
+    {# ───── Handover card ───── #}
+    <div class="glass-card animate-fade-up stagger-{{ loop.index if loop.index <= 8 else 8 }}">
+        <div class="p-5">
+            {# ── Top row: timestamp + badge ── #}
+            <div class="flex items-center justify-between mb-4">
+                <time class="text-xs font-medium text-[var(--text-muted)] tracking-wide tabular-nums">
+                    {{ h.timestamp.strftime('%d %b %Y · %H:%M') }}
+                </time>
+                <span class="tag-pill">{{ h.id[:8] }}</span>
+            </div>
+
+            {# ── Agent flow visualization ── #}
+            <div class="flex items-center gap-4 mb-4">
+                {# Source agent #}
+                <div class="flex items-center gap-3 flex-1 min-w-0">
+                    <div class="agent-icon shrink-0" style="background: {{ agent_colors.get(h.source_agent, '#71717a') }}15; color: {{ agent_colors.get(h.source_agent, '#71717a') }};">
+                        {{ icons.get(h.source_agent, icons["generic"]) | safe }}
+                    </div>
+                    <div class="min-w-0">
+                        <div class="text-xs text-[var(--text-muted)] mb-0.5">Origem</div>
+                        <div class="text-sm font-semibold truncate">{{ h.source_agent }}</div>
+                    </div>
+                </div>
+
+                {# Animated flow connector #}
+                <div class="flex-1 max-w-[120px] flex flex-col items-center gap-1">
+                    <div class="flow-connector w-full"></div>
+                    <svg class="w-4 h-4 animate-pulse" style="color: var(--accent);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </div>
+
+                {# Target agent #}
+                <div class="flex items-center gap-3 flex-1 min-w-0 justify-end text-right">
+                    <div class="min-w-0">
+                        <div class="text-xs text-[var(--text-muted)] mb-0.5">Destino</div>
+                        <div class="text-sm font-semibold truncate">{{ h.target_agent }}</div>
+                    </div>
+                    <div class="agent-icon shrink-0" style="background: {{ agent_colors.get(h.target_agent, '#71717a') }}15; color: {{ agent_colors.get(h.target_agent, '#71717a') }};">
+                        {{ icons.get(h.target_agent, icons["generic"]) | safe }}
+                    </div>
+                </div>
+            </div>
+
+            {# ── Intent summary ── #}
+            <p class="text-sm text-[var(--text-secondary)] leading-relaxed mb-4 line-clamp-2">
+                {{ h.intent_summary }}
+            </p>
+
+            {# ── Action row ── #}
+            <div class="flex items-center justify-between pt-3 border-t border-[var(--border-subtle)]">
+                <div class="flex items-center gap-2 text-xs text-[var(--text-muted)]">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                    Concluído
+                </div>
+                <a href="{{ url_for('handover_detail', handover_id=h.id) }}"
+                   class="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--accent)] hover:text-[var(--accent-light)] transition-colors group">
+                    Ver detalhe
+                    <svg class="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% else %}
+{# ───── Empty state ───── #}
+<div class="animate-scale-in">
+    <div class="empty-state">
+        <div class="empty-state-icon">
+            <svg class="w-8 h-8 text-[var(--accent)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+        </div>
+        <h3 class="text-lg font-semibold mb-2">Nenhum handover ainda</h3>
+        <p class="text-sm text-[var(--text-secondary)] max-w-sm mx-auto mb-6">
+            Execute um handover para transferir contexto entre agentes de IA.
+        </p>
+        <div class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-mono text-[var(--text-muted)]" style="background: var(--bg-subtle); border: 1px solid var(--border);">
+            <span class="text-[var(--accent)]">$</span>
+            agent-ctx extract --source claude-code --target cursor --project .
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

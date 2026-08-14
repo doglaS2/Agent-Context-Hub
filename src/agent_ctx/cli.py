@@ -275,3 +275,68 @@ def resume_context(
         database.migrate()
         database.save_handover(payload)
     typer.echo(f"handover {payload.id} salvo em {db_path}")
+
+# ──────────────────────── Fase 4: dashboard ──────────────────────────
+
+@app.command("ui")
+def start_ui(
+    host: Annotated[str, typer.Option("--host", help="Host do servidor.")] = "127.0.0.1",
+    port: Annotated[int, typer.Option("--port", help="Porta.")] = 8765,
+    open_browser: Annotated[
+        bool, typer.Option("--open/--no-open", help="Abrir browser automaticamente.")
+    ] = False,
+    db: _DbOption = None,
+) -> None:
+    """Inicia dashboard web local (requer extra [ui])."""
+    try:
+        import uvicorn
+
+        from agent_ctx.ui.server import create_app
+    except ImportError:
+        typer.secho(
+            "Erro: Dependências do dashboard não instaladas. "
+            'Use `pip install "agent-ctx[ui]"`',
+            fg=typer.colors.RED,
+            err=True,
+        )
+        raise typer.Exit(1)
+
+    db_path = _resolve_db(db)
+    if not db_path.exists():
+        typer.secho(f"Banco não encontrado em {db_path}. Use `agent-ctx init`.",
+                    fg=typer.colors.YELLOW, err=True)
+        raise typer.Exit(1)
+
+    if host != "127.0.0.1" and host != "localhost":
+        typer.secho(f"⚠ AVISO: Dashboard aberto em {host}. Sem autenticação!",
+                    fg=typer.colors.RED, err=True)
+
+    import socket
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        try:
+            s.bind((host, port))
+        except OSError:
+            typer.secho(f"Porta {port} ocupada. Tente outra com --port.",
+                        fg=typer.colors.RED, err=True)
+            raise typer.Exit(1)
+
+    if open_browser:
+        import threading
+        import webbrowser
+        url = f"http://{host}:{port}"
+        def open_delayed():
+            import time
+            for _ in range(10):
+                try:
+                    import urllib.request
+                    urllib.request.urlopen(url, timeout=1)
+                    webbrowser.open(url)
+                    return
+                except: time.sleep(0.5)
+        threading.Thread(target=open_delayed, daemon=True).start()
+
+    app = create_app(db_path)
+    from starlette.middleware.trustedhost import TrustedHostMiddleware
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=[host, "127.0.0.1", "localhost"])
+
+    uvicorn.run(app, host=host, port=port, log_level="error")

@@ -86,8 +86,28 @@ Com `--dry-run`, o contexto é extraído e injetado, mas **não** é persistido 
 agent-ctx version              # versão instalada
 agent-ctx add --file payload.json   # valida e salva um HandoverPayload de JSON
 agent-ctx list [-n 20]         # lista handovers recentes
+agent-ctx ui                   # inicia dashboard web local
 agent-ctx --help               # ajuda geral
 ```
+
+## Dashboard Web
+
+O comando `agent-ctx ui` inicia um servidor FastAPI local para visualização
+da timeline de handovers.
+
+```bash
+pip install "agent-ctx[ui]"
+agent-ctx ui --open
+```
+
+O dashboard é 100% offline e usa Tailwind CSS compilado localmente. A UI atual já inclui:
+- tema claro/escuro com persistência no navegador
+- layout responsivo com hierarquia visual mais forte
+- cartões e detalhes com acabamento refinado
+- interação de navegação pronta para evoluir para efeitos visuais mais ricos
+
+Para regerar o CSS após alterar os templates:
+`npx tailwindcss -i src/agent_ctx/ui/static/input.css -o src/agent_ctx/ui/static/tailwind.css --minify --content "src/agent_ctx/ui/templates/**/*.html"`
 
 ## Roadmap
 
@@ -96,7 +116,7 @@ agent-ctx --help               # ajuda geral
 | 1 | Core + banco SQLite + CLI + Schema Universal (Pydantic) | ✅ entregue |
 | 2 | Extractors (Claude Code, Cursor/VS Code, Antigravity) + file scanner + comando `extract` | ✅ entregue |
 | 3 | Injectors (`.agent-ctx/handover.json`, `.claude/agent-context.md`) + `inject`/`resume` | ✅ entregue |
-| 4 | Dashboard local (`agent-ctx ui`, FastAPI + Tailwind) | pendente |
+| 4 | Dashboard local (`agent-ctx ui`, FastAPI + Tailwind) | ✅ entregue |
 
 ## Desenvolvimento
 
