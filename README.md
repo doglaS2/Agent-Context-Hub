@@ -18,6 +18,8 @@ sem depender de cloud, mantendo todos os dados na sua máquina.
 
 • **Semantic Summarizer (Claude Sonnet + Fallback Local):** Processa opcionalmente os diffs brutos de código gerando resumos semânticos focados em impacto funcional e intenção (com suporte a Claude Sonnet via `ANTHROPIC_API_KEY` ou fallback heurístico 100% local).
 
+> **Roadmap:** Atualmente o sumarizador semântico utiliza exclusivamente o Claude Sonnet (Anthropic) quando a `ANTHROPIC_API_KEY` está configurada. Futuramente será implementada suporte a outros provedores e modelos de LLM (OpenAI, Google Gemini, modelos locais via Ollama, etc.), garantindo flexibilidade para diferentes necessidades e preferências dos usuários.
+
 • **Common Schema JSON:** Normaliza o estado bruto em uma estrutura de dados universal validada via Pydantic, atuando como um hub desacoplado.
 
 • **Injectors Automatizados:** Converte o schema no formato esperado pela ferramenta de destino (injetando instruções direto no chat ou gerando regras dinâmicas).
