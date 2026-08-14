@@ -7,8 +7,22 @@ logs de conversa) entre agentes e IDEs — Claude Code, Cursor, VS Code, Antigra
 sem depender de cloud, mantendo todos os dados na sua máquina.
 
 - **Local-first / Privacy-by-Design:** tudo em SQLite local (`~/.agent-ctx/history.db`).
-- **Agnóstico de modelo:** fala com os *hosts* (arquivos de estado/logs), nunca com LLMs.
+- **Agnóstico de modelo:** fala com os *hosts* (arquivos de estado/logs), com opção de sumarização via Claude Sonnet.
 - **Hub-and-Spoke:** um *Common Schema JSON* universal desacopla extractors de injectors.
+
+⚙️ **Como funciona a arquitetura:**
+
+• **Extractors & Local Parsers:** Vasculham diretamente os logs de sessão do terminal (ex: `~/.claude`) e fazem queries nos bancos SQLite locais das IDEs (`state.vscdb`) para extrair intenção e histórico de chat.
+
+• **File Scanner por mtime:** Percorre o projeto capturando diffs e arquivos alterados nos últimos minutos via metadados do sistema operacional, sem depender de commits no Git.
+
+• **Semantic Summarizer (Claude Sonnet + Fallback Local):** Processa opcionalmente os diffs brutos de código gerando resumos semânticos focados em impacto funcional e intenção (com suporte a Claude Sonnet via `ANTHROPIC_API_KEY` ou fallback heurístico 100% local).
+
+• **Common Schema JSON:** Normaliza o estado bruto em uma estrutura de dados universal validada via Pydantic, atuando como um hub desacoplado.
+
+• **Injectors Automatizados:** Converte o schema no formato esperado pela ferramenta de destino (injetando instruções direto no chat ou gerando regras dinâmicas).
+
+• **Dashboard Local-First:** Armazena o histórico em um SQLite local e roda um servidor FastAPI leve com interface gráfica (Tailwind CSS) para auditar cada handover sem enviar nenhum byte pra nuvem.
 
 ## Instalação
 

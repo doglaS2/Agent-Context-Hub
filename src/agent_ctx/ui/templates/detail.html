@@ -6,8 +6,8 @@
 <div class="detail-card">
     <div class="detail-header">
         <div class="detail-header-left">
-            <time class="detail-time">{{ handover.timestamp.strftime('%d %B %Y · %H:%M:%S') }}</time>
-            <span class="detail-relative" data-ts="{{ handover.timestamp.isoformat() }}"></span>
+            <time class="detail-time">{{ handover.timestamp | to_local | strftime('%d %B %Y · %H:%M:%S') }}</time>
+            <span class="detail-relative" data-ts="{{ (handover.timestamp | to_local).isoformat() }}"></span>
             <div class="detail-counters">
                 {% if handover.recent_files %}<span>{{ handover.recent_files | length }} arquivo{{ 's' if handover.recent_files | length != 1 }}</span>{% endif %}
                 {% if handover.last_conversation_logs %}<span>{{ handover.last_conversation_logs | length }} log{{ 's' if handover.last_conversation_logs | length != 1 }}</span>{% endif %}

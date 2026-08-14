@@ -14,7 +14,7 @@
     {% for h in handovers %}
     <article class="timeline-item glass-card">
         <div class="timeline-meta">
-            <time class="timeline-time">{{ h.timestamp.strftime('%d %b %Y · %H:%M') }}</time>
+            <time class="timeline-time">{{ h.timestamp | to_local | strftime('%d %b %Y · %H:%M') }}</time>
             <span class="tag-pill">{{ h.id|string }}</span>
         </div>
 
