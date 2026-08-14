@@ -7,7 +7,7 @@ logs de conversa) entre agentes e IDEs — Claude Code, Cursor, VS Code, Antigra
 sem depender de cloud, mantendo todos os dados na sua máquina.
 
 - **Local-first / Privacy-by-Design:** tudo em SQLite local (`~/.agent-ctx/history.db`).
-- **Agnóstico de modelo:** fala com os *hosts* (arquivos de estado/logs), com opção de sumarização via Claude Sonnet.
+- **Agnóstico de modelo:** fala com os *hosts* (arquivos de estado/logs), com sumarização multi-provider (Anthropic, OpenAI, Gemini, Ollama, Local).
 - **Hub-and-Spoke:** um *Common Schema JSON* universal desacopla extractors de injectors.
 
 ⚙️ **Como funciona a arquitetura:**
@@ -17,6 +17,23 @@ sem depender de cloud, mantendo todos os dados na sua máquina.
 • **File Scanner por mtime:** Percorre o projeto capturando diffs e arquivos alterados nos últimos minutos via metadados do sistema operacional, sem depender de commits no Git.
 
 • **Semantic Summarizer (Multi-Provider + Fallback Local):** Processa opcionalmente os diffs brutos de código gerando resumos semânticos focados em impacto funcional e intenção. Suporta múltiplos provedores de LLM (`anthropic`, `openai`, `gemini`, `ollama`, `local`) via variáveis de ambiente ou flags CLI, com fallback heurístico 100% local quando chaves ou dependências não estão presentes.
+
+### Provedores de sumarização
+
+| `--provider` | Variável de ambiente | Modelo padrão | Pré-requisito |
+|---|---|---|---|
+| `anthropic` | `ANTHROPIC_API_KEY` | `claude-3-5-sonnet-20241022` | SDK `anthropic` |
+| `openai` | `OPENAI_API_KEY` | `gpt-4o-mini` | SDK `openai` |
+| `gemini` | `GEMINI_API_KEY` ou `GOOGLE_API_KEY` | `gemini-1.5-flash` | SDK `google-generativeai` |
+| `ollama` | `OLLAMA_HOST` (default `http://127.0.0.1:11434`) | `llama3.2` | Servidor Ollama local |
+| `local` | — | — | Nenhum (heurística pura) |
+
+Precedência: flag `--provider` > `AGENT_CTX_SUMMARIZER_PROVIDER` > chave disponível
+`ANTHROPIC`/`OPENAI`/`GEMINI`/`OLLAMA_HOST` > `local` (Claude na ausência de chave).
+
+Sumarizador é opcional. Sempre que o provedor configurado não estiver disponível
+(SDK ausente, credencial inválida, servidor fora do ar), o fallback local é
+acionado automaticamente e a execução segue.
 
 • **Common Schema JSON:** Normaliza o estado bruto em uma estrutura de dados universal validada via Pydantic, atuando como um hub desacoplado.
 
@@ -55,6 +72,29 @@ O comando `extract` lê o histórico local do agente de origem e salva um
 agent-ctx extract --source claude-code --target cursor --project C:/meu/projeto --dry-run
 ```
 
+Enriquecer o handover com resumo semântico (multi-provider):
+
+```bash
+# Usar o provedor autodetectado (ou fallback local)
+agent-ctx extract --source claude-code --target cursor --project C:/meu/projeto --summarize
+
+# Escolher provedor e modelo explicitamente
+agent-ctx extract --source claude-code --target cursor --project C:/meu/projeto \
+  --summarize --provider openai --model gpt-4o-mini
+agent-ctx extract --source claude-code --target cursor --project C:/meu/projeto \
+  --summarize --provider ollama --model llama3.2
+agent-ctx extract --source claude-code --target cursor --project C:/meu/projeto \
+  --summarize --provider local
+```
+
+Também há um comando standalone para sumarizar um diff bruto:
+
+```bash
+agent-ctx summarize --provider gemini --intent "refatoração de auth" \
+  --diff "diff --git a/auth.py b/auth.py
++def login(user, pwd): return jwt.encode(user)"
+```
+
 ### Extratores disponíveis
 
 | `--source` | Origem |
@@ -78,11 +118,13 @@ agent-ctx inject --id <ID> --project C:/meu/projeto
 ```
 
 O `resume` faz a operação completa numa só chamada — *extract → inject → salvar* —
-transferindo contexto entre dois agentes:
+transferindo contexto entre dois agentes (`--provider`/`--model` também suportados):
 
 ```bash
 agent-ctx resume --source claude-code --target cursor --project C:/meu/projeto
 agent-ctx resume --source claude-code --target cursor --project C:/meu/projeto --dry-run
+agent-ctx resume --source claude-code --target cursor --project C:/meu/projeto \
+  --summarize --provider anthropic
 ```
 
 Com `--dry-run`, o contexto é extraído e injetado, mas **não** é persistido no banco.
@@ -113,19 +155,11 @@ agent-ctx inject --id <ID> --project .
 agent-ctx ui
 ```
 
-## Instalação
-
-```bash
-python -m pip install -e ".[dev]"
-```
-
-Se você for usar o dashboard local, instale também os extras da interface:
+Para usar o dashboard local (FastAPI + Tailwind), instale os extras da interface:
 
 ```bash
 python -m pip install -e ".[ui]"
 ```
-
-## Uso
 
 O fluxo básico é:
 1. Extrair contexto do agente de origem.
