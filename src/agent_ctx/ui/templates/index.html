@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgentContext Hub</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/tailwind.css') }}">
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold mb-8">Timeline de Handovers</h1>
+        {% if handovers %}
+            <div class="space-y-4">
+                {% for h in handovers %}
+                    <div class="bg-slate-900/50 border border-slate-800 p-4 rounded-lg hover:border-slate-600 transition">
+                        <div class="flex justify-between mb-2">
+                            <span class="font-mono text-sm text-slate-400">{{ h.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</span>
+                            <a href="{{ url_for('handover_detail', handover_id=h.id) }}" class="text-blue-400 hover:text-blue-300">Ver detalhe</a>
+                        </div>
+                        <div class="text-lg font-semibold">{{ h.source_agent }} → {{ h.target_agent }}</div>
+                        <div class="text-sm text-slate-300 mt-1">{{ h.intent_summary }}</div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-slate-500">Nenhum handover encontrado. Use <code class="bg-slate-800 px-1 rounded">agent-ctx extract</code>.</p>
+        {% endif %}
+    </div>
+</body>
+</html>

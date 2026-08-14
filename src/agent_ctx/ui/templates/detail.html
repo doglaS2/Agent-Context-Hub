@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Detalhe do Handover</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/tailwind.css') }}">
+</head>
+<body class="bg-slate-950 text-slate-100 p-8">
+    <div class="container mx-auto">
+        <a href="/" class="text-blue-400 mb-4 block">← Voltar</a>
+        <h1 class="text-2xl font-bold mb-4">{{ handover.source_agent }} → {{ handover.target_agent }}</h1>
+        <div class="bg-slate-900/50 p-6 rounded border border-slate-800">
+            <h2 class="font-bold mb-2">Intenção</h2>
+            <p class="mb-4 text-slate-300">{{ handover.intent_summary }}</p>
+            <h2 class="font-bold mb-2">Arquivos</h2>
+            <ul class="font-mono text-sm mb-4">
+                {% for f in handover.recent_files %}
+                    <li class="mb-2 border-b border-slate-800 pb-2">{{ f.path }}
+                        <pre class="bg-black text-xs text-slate-400 p-2 mt-1">{{ f.diff[:2000] }}{% if f.diff|length > 2000 %}[...truncado]{% endif %}</pre>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</body>
+</html>
