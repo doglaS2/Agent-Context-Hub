@@ -30,7 +30,9 @@ def create_app(db_path: Path) -> FastAPI:
                 handovers = db.list_summaries(limit=min(limit, 200))
             except Exception:
                 handovers = []
-        return templates.TemplateResponse(request, "index.html", {"handovers": handovers})
+        return templates.TemplateResponse(
+            request, "index.html", {"handovers": handovers}
+        )
 
     @app.get("/handover/{handover_id}", response_class=HTMLResponse)
     async def handover_detail(request: Request, handover_id: str):
@@ -43,8 +45,12 @@ def create_app(db_path: Path) -> FastAPI:
                 handover = None
 
         if not handover:
-            return templates.TemplateResponse(request, "404.html", {"status": 404}, status_code=404)
+            return templates.TemplateResponse(
+                request, "404.html", {"status": 404}, status_code=404
+            )
 
-        return templates.TemplateResponse(request, "detail.html", {"handover": handover})
+        return templates.TemplateResponse(
+            request, "detail.html", {"handover": handover}
+        )
 
     return app

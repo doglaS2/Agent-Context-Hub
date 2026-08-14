@@ -1,10 +1,12 @@
-import pytest
 from pathlib import Path
-from agent_ctx.ui.server import create_app
+
+import pytest
 from fastapi.testclient import TestClient
+
 from agent_ctx.core.database import Database
 from agent_ctx.core.schema import HandoverPayload
-import uuid
+from agent_ctx.ui.server import create_app
+
 
 @pytest.fixture
 def test_db(tmp_path: Path):
@@ -25,7 +27,8 @@ def test_ui_timeline(test_db):
 
     resp = client.get("/")
     assert resp.status_code == 200
-    assert "claude-code → cursor" in resp.text
+    assert "claude-code" in resp.text
+    assert "cursor" in resp.text
     assert "teste" in resp.text
 
 def test_ui_xss_protection(test_db):

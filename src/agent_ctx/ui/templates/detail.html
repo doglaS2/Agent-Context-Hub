@@ -1,26 +1,105 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <title>Detalhe do Handover</title>
-    <link rel="stylesheet" href="{{ url_for('static', path='/tailwind.css') }}">
-</head>
-<body class="bg-slate-950 text-slate-100 p-8">
-    <div class="container mx-auto">
-        <a href="/" class="text-blue-400 mb-4 block">← Voltar</a>
-        <h1 class="text-2xl font-bold mb-4">{{ handover.source_agent }} → {{ handover.target_agent }}</h1>
-        <div class="bg-slate-900/50 p-6 rounded border border-slate-800">
-            <h2 class="font-bold mb-2">Intenção</h2>
-            <p class="mb-4 text-slate-300">{{ handover.intent_summary }}</p>
-            <h2 class="font-bold mb-2">Arquivos</h2>
-            <ul class="font-mono text-sm mb-4">
-                {% for f in handover.recent_files %}
-                    <li class="mb-2 border-b border-slate-800 pb-2">{{ f.path }}
-                        <pre class="bg-black text-xs text-slate-400 p-2 mt-1">{{ f.diff[:2000] }}{% if f.diff|length > 2000 %}[...truncado]{% endif %}</pre>
-                    </li>
-                {% endfor %}
-            </ul>
+{% extends "base.html" %}
+
+{% block title %}Handover Detail · AgentContext Hub{% endblock %}
+
+{% block content %}
+
+{% set icons = {
+  "claude-code": '<svg viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5z" fill="currentColor" opacity="0.2"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  "cursor": '<svg viewBox="0 0 24 24" fill="none"><path d="M5 3l14 9-6 1-3 7-5-17z" fill="currentColor" opacity="0.2" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>',
+  "vscode": '<svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" stroke-width="1.5"/><path d="M8 8l4 4-4 4M13 16h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  "antigravity": '<svg viewBox="0 0 24 24" fill="none"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7l3-7z" fill="currentColor" opacity="0.2" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>',
+  "generic": '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/><path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>'
+} %}
+
+{% set agent_colors = {
+  "claude-code": "#d97706",
+  "cursor": "#3b82f6",
+  "vscode": "#0ea5e9",
+  "antigravity": "#8b5cf6",
+  "generic": "#71717a"
+} %}
+
+{# ───── Back link ───── #}
+<a href="/" class="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors mb-8 group animate-fade-up">
+    <svg class="w-4 h-4 transition-transform group-hover:-translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    Timeline
+</a>
+
+{# ───── Header card ───── #}
+<div class="glass-card p-6 mb-6 animate-fade-up stagger-1">
+    <div class="flex items-center justify-between mb-5">
+        <time class="text-xs font-medium text-[var(--text-muted)] tracking-wide tabular-nums">
+            {{ handover.timestamp.strftime('%d %B %Y · %H:%M:%S') }}
+        </time>
+        <span class="tag-pill">{{ handover.id | string | truncate(8, true, '') }}</span>
+    </div>
+
+    {# ── Agent flow ── #}
+    <div class="flex items-center gap-4">
+        <div class="flex items-center gap-3">
+            <div class="agent-icon" style="background: {{ agent_colors.get(handover.source_agent, '#71717a') }}15; color: {{ agent_colors.get(handover.source_agent, '#71717a') }};">
+                {{ icons.get(handover.source_agent, icons["generic"]) | safe }}
+            </div>
+            <div>
+                <div class="text-xs text-[var(--text-muted)]">Origem</div>
+                <div class="text-base font-bold">{{ handover.source_agent }}</div>
+            </div>
+        </div>
+
+        <div class="flex-1 flex flex-col items-center gap-1">
+            <div class="flow-connector w-full"></div>
+            <svg class="w-4 h-4 animate-pulse" style="color: var(--accent);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </div>
+
+        <div class="flex items-center gap-3 text-right">
+            <div>
+                <div class="text-xs text-[var(--text-muted)]">Destino</div>
+                <div class="text-base font-bold">{{ handover.target_agent }}</div>
+            </div>
+            <div class="agent-icon" style="background: {{ agent_colors.get(handover.target_agent, '#71717a') }}15; color: {{ agent_colors.get(handover.target_agent, '#71717a') }};">
+                {{ icons.get(handover.target_agent, icons["generic"]) | safe }}
+            </div>
         </div>
     </div>
-</body>
-</html>
+</div>
+
+{# ───── Intent section ── #}
+<div class="glass-card p-6 mb-6 animate-fade-up stagger-2">
+    <div class="flex items-center gap-2 mb-3">
+        <div class="w-6 h-6 rounded-md flex items-center justify-center" style="background: var(--accent-glow);">
+            <svg class="w-3.5 h-3.5" style="color: var(--accent);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+        </div>
+        <h2 class="text-sm font-semibold">Intenção</h2>
+    </div>
+    <p class="text-[var(--text-secondary)] leading-relaxed">{{ handover.intent_summary }}</p>
+</div>
+
+{# ───── Files section ── #}
+{% if handover.recent_files %}
+<div class="glass-card p-6 animate-fade-up stagger-3">
+    <div class="flex items-center gap-2 mb-4">
+        <div class="w-6 h-6 rounded-md flex items-center justify-center" style="background: var(--accent-glow);">
+            <svg class="w-3.5 h-3.5" style="color: var(--accent);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+        </div>
+        <h2 class="text-sm font-semibold">Arquivos</h2>
+        <span class="tag-pill ml-auto">{{ handover.recent_files | length }} arquivos</span>
+    </div>
+
+    <div class="space-y-3">
+        {% for f in handover.recent_files %}
+        <div class="rounded-xl p-4 transition-all duration-200 hover:scale-[1.005]" style="background: var(--bg-subtle); border: 1px solid var(--border-subtle);">
+            <div class="flex items-center gap-2 mb-2">
+                <svg class="w-3.5 h-3.5 text-[var(--text-muted)] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>
+                <code class="text-xs text-[var(--accent)] font-medium truncate">{{ f.path }}</code>
+            </div>
+            {% if f.diff %}
+            <pre class="text-xs text-[var(--text-muted)] overflow-x-auto max-h-48 overflow-y-auto leading-relaxed rounded-lg p-3" style="background: var(--bg);">{{ f.diff[:2000] }}{% if f.diff|length > 2000 %}<span class="text-[var(--text-muted)] opacity-50"> [... truncado]</span>{% endif %}</pre>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

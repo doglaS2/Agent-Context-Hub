@@ -100,9 +100,14 @@ pip install "agent-ctx[ui]"
 agent-ctx ui --open
 ```
 
-O dashboard é 100% offline e vendoriza Tailwind CSS compilado (sem Node).
-Para regerar o CSS após alterar o template:
-`tailwindcss -i src/agent_ctx/ui/static/input.css -o src/agent_ctx/ui/static/tailwind.css --minify --content "src/agent_ctx/ui/templates/**/*.html"`
+O dashboard é 100% offline e usa Tailwind CSS compilado localmente. A UI atual já inclui:
+- tema claro/escuro com persistência no navegador
+- layout responsivo com hierarquia visual mais forte
+- cartões e detalhes com acabamento refinado
+- interação de navegação pronta para evoluir para efeitos visuais mais ricos
+
+Para regerar o CSS após alterar os templates:
+`npx tailwindcss -i src/agent_ctx/ui/static/input.css -o src/agent_ctx/ui/static/tailwind.css --minify --content "src/agent_ctx/ui/templates/**/*.html"`
 
 ## Roadmap
 
